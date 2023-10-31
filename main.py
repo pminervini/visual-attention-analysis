@@ -1,8 +1,10 @@
 import os
+import sys
 import csv
 import random
 import numpy as np
 from PIL import Image, ImageDraw
+from tqdm import tqdm
 import argparse
 
 def draw_star(draw, center, size, angle=0):
@@ -38,24 +40,26 @@ def draw_shape(draw, shape, position, size, angle):
     elif shape == 'star':
         draw_star(draw, position, size, np.deg2rad(angle))
 
-def create_random_shape_image(img_size):
+def create_random_shape_image(img_size, do_rotate):
     img = Image.new('RGB', (img_size, img_size), color = 'white')
     draw = ImageDraw.Draw(img)
 
     shape = random.choice(SHAPES)
     size = random.randint(15, 30)
     position = (random.randint(size, img_size - size), random.randint(size, img_size - size))
-    angle = random.randint(0, 360) if ROTATE_SHAPES else 0
+    angle = random.randint(0, 360) if do_rotate else 0
 
     draw_shape(draw, shape, position, size, angle)
     return img, shape
 
-def main():
+def main(argv):
     parser = argparse.ArgumentParser(description='Generate images with random shapes.')
     parser.add_argument('--output', type=str, default='generated_images', help='Output directory for images')
     parser.add_argument('--size', type=int, default=224, help='Size of the images (square)')
     parser.add_argument('--num', type=int, default=100, help='Number of images to generate')
-    args = parser.parse_args()
+    parser.add_argument('--rotate', action='store_true', help='Rotate shapes randomly (default: no rotation)')
+
+    args = parser.parse_args(argv)
 
     output_dir = args.output
     img_size = args.size
@@ -68,8 +72,8 @@ def main():
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(['Image', 'Shape'])
 
-        for i in range(num_images):
-            img, shape = create_random_shape_image(img_size)
+        for i in tqdm(range(num_images)):
+            img, shape = create_random_shape_image(img_size, args.rotate)
             img_path = os.path.join(output_dir, f'image_{i+1}.png')
             img.save(img_path)
             csvwriter.writerow([img_path, shape])
@@ -78,5 +82,4 @@ def main():
 
 if __name__ == "__main__":
     SHAPES = ['star', 'triangle', 'square', 'circle']
-    ROTATE_SHAPES = True  # Set to False to disable rotation
-    main()
+    main(sys.argv[1:])
